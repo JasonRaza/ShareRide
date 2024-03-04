@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>profil</title>
     <link rel="stylesheet" href="/css/style-page-profil.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw02Fzka8C3SVlPqi_hbUrCPaxvwSEnXA&libraries=places"></script>
+    <script>
+        function initAutocomplete(){
+            var departInput = document.getElementById('depart');
+            var departAutocomplete = new google.maps.places.Autocomplete(departInput);
+
+            var arriveeInput = document.getElementById('arrivee');
+            var arriveeAutocomplete = new google.maps.places.Autocomplete(arriveeInput)
+        }
+        google.maps.event.addDomListener(window, 'load', initAutocomplete);
+    </script>    
 </head>
 <body>
     <div class="container">
@@ -13,31 +24,46 @@
             <div class="photo">
                 <img class="photo" src="https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png" alt="">
             </div>
-
+            <p>Bonjour! <%= nom %> <%= prenom %></p>
             <p>score</p>
-            <p>Logout</p>
+            <form action="/logout" method="GET">
+                <button type="submit">Logout</button>                
+            </form>
+
         </div>
         <div class="box">
-            <h3>Afficher tout les trajet de Québec en live: </h3>
+            <h3>Afficher tous les trajets de Québec en live : </h3>
+            <% if (trajets && trajets.length > 0) { %>
+            <% trajets.forEach(trajet => { %>
+                <div class="trajet">
+                    <p>Point de départ: <%= trajet.pointDepart %></p>
+                    <p>Point de destination: <%= trajet.pointDestination %></p>
+                </div>
+            <% }); %>
+            <% } else { %>
+                <p>Aucun trajet trouvé.</p>
+            <% } %>
         </div>
 
         <div class="box">
             <h3>Rechercher trajet</h3>
-            <form action="">            
-                <input type="text" name="" id="" placeholder="Point de départ">
-                <input type="text" name="" id="" placeholder="Point d'arrivée">
-                <button>Rechercher</button>
+            <form action="/rechercher-trajet" method="POST">            
+                <input type="text" name="pointDepart" id="pointDepart" placeholder="Point de départ">
+                <input type="text" name="pointDepart" id="pointDestination" placeholder="Point d'arrivée">
+                <button type="submit">Rechercher</button>
             </form>
-
         </div>     
-        <br>
+
         <div class="box">
             <h3>Créer un trajet</h3>
             <p>Vous disposer d'un véhicule? Créer un trajet</p>
-            <form action="">            
-                <input type="text" name="" id="" placeholder="Point de départ">
-                <input type="text" name="" id="" placeholder="Point d'arrivée">
-                <button>Créer</button>
+            <form action="/creer-trajet" method="POST">            
+                <input type="text" id="pointDepart" name="pointDepart"  placeholder="Point de départ">
+                <input type="text" id="pointArrivee" name="pointArrivee" placeholder="Point d'arrivée">
+                <input type="text" id="dateDepart" name="dateDepart" placeholder="Date du départ">
+                <input type="text" id="heureDepart" name="heureDepart" placeholder="Heure départ">
+                <input type="text" id="voiture" name="voiture" placeholder="Voiture">
+                <button type="submit">Créer</button>
             </form>
         </div>
         <div class="box">

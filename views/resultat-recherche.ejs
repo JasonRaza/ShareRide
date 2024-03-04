@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résultat de la recherche</title>
+</head>
+<body>
+    <h1><%= message %></h1>
+    <% if (trajets.length > 0) { %>
+        <% trajets.forEach(trajet => { %>
+            <div class="trajet">
+                <p>Point de départ: <%= trajet.pointDepart %></p>
+                <p>Point de destination: <%= trajet.pointDestination %></p>
+            </div>
+        <% }); %>
+    <% } %>
+</body>
+</html>
