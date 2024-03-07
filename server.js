@@ -126,18 +126,22 @@ app.post('/profil', async (req, res)=> {
 
 app.post('/creer-trajet', async (req, res)=> {
     try{
-        const { depart, arrivee, dateDepart, heureDepart, voiture } = req.body;
+        const { 
+            pointDepart, 
+            pointArrivee, 
+            dateDepart, 
+            heureDepart, 
+            voiture 
+        } = req.body;
         
         const userId = req.session.userId;
         
         const nouveauTrajet = new Trajet({
-            pointDepart: depart,
-            pointDestination: arrivee,
+            pointDepart: pointDepart,
+            pointDestination: pointArrivee,
             dateDepart: dateDepart,
             heureDepart: heureDepart,
-            voiture: voiture,
-            con
- :ruetcu
+            voiture: voiture
         })
 
         await nouveauTrajet.save();
@@ -159,7 +163,7 @@ app.post('/rechercher-trajet', async (req, res) => {
         }else if(pointDestination){
             critereRecherche = { pointDestination: pointDestination};
         }
-
+            
         const trajetsTrouves = await Trajet.find(critereRecherche);
 
         if(trajetsTrouves.length > 0){
