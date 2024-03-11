@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const connectDB = require('./config/database');
+const dayjs = require('dayjs');
+const  format  = require('date-fns');
 const crypto = require('crypto');
 const utilisateurModel = require('./model/utilisateurModel');
 const Trajet = require('./model/trajetModel');
@@ -89,6 +91,7 @@ app.post('/inscription', async (req,res) =>{
     }
 })
 
+
 app.post('/profil', async (req, res)=> {
     try{
         const { email, password} = req.body;
@@ -104,8 +107,11 @@ app.post('/profil', async (req, res)=> {
             return res.status(401).send('Mot de passe incorrect');
         }
 
+        const userId = utilisateur._id;
         const nom = utilisateur.nom;
         const prenom = utilisateur.prenom;
+
+        req.session.userId = userId;
 
         //Capitalise la premiere lettre du nom et du prenom
         const nomCapitalise = nom.charAt(0).toUpperCase() + nom.slice(1).toLowerCase();
@@ -113,10 +119,28 @@ app.post('/profil', async (req, res)=> {
 
         let trajets= await Trajet.find(); 
         //console.log(trajets); J'ai mis en commentaire sinon ca rempli trop le terminal, enlever commentaire pour tester
-
+        
+        trajets = trajets.map(trajet => {
+            // Formater la date
+            const dateDepart = trajet.dateDepart instanceof Date ? trajet.dateDepart.toLocaleDateString('fr-FR') : '';
+            
+            // Formater l'heure
+            const heureDepart = trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+        
+            trajet.dateDepart = dateDepart;
+            trajet.heureDepart = heureDepart;
+            return trajet;
+        });
+        
+        
+        
 
         res.render('profil', { nom: nomCapitalise, prenom: prenomCapitalise, trajets });        
         console.log('Page profil utilisateur ouvert.');
+        console.log("Tentative de connexion avec email:", req.body.email);
+        console.log("Session id : ", req.sessionID);
+        console.log("ID de l'utilisateur:", userId);
+
 
     }catch(err){
         console.error(err);
@@ -126,17 +150,12 @@ app.post('/profil', async (req, res)=> {
 
 app.post('/creer-trajet', async (req, res)=> {
     try{
-        const { 
-            pointDepart, 
-            pointArrivee, 
-            dateDepart, 
-            heureDepart, 
-            voiture 
-        } = req.body;
-        
+        const { pointDepart, pointArrivee, dateDepart, heureDepart, voiture } = req.body;
+            
         const userId = req.session.userId;
         
         const nouveauTrajet = new Trajet({
+            conducteur: userId,
             pointDepart: pointDepart,
             pointDestination: pointArrivee,
             dateDepart: dateDepart,
@@ -145,11 +164,14 @@ app.post('/creer-trajet', async (req, res)=> {
         })
 
         await nouveauTrajet.save();
+        res.status(200).send({ message: 'Le trajet a été créé avec succès.' });
+
     }catch(error){
         console.error(error);
         res.status(500).send('Erreur lors de la création du trajet');
     }
 })
+
 
 app.post('/rechercher-trajet', async (req, res) => {
     try{
@@ -179,6 +201,29 @@ app.post('/rechercher-trajet', async (req, res) => {
         console.error(err);
         res.status(500).send('Erreur lors de la recherche de trajets');
     }
+});
+
+app.post('/reserver-trajet', async(req, res) => {
+    const trajetId = req.body.trajetId;
+    const utilisateurId = req.user._id;
+
+    try{
+        const trajet = await Trajet.findById(trajetId).populate('voiture');
+        if(!trajet.reservation && trajet.passagers.length < trajet.voiture.capacite) {
+            trajet.passagers.push(utilisateurID);
+            if(trajet.passagers.length >= trajet.voiture.capacite){
+                trajet.reservation = true;
+            }
+        
+        await trajet.save();
+        res.redirect('/resultat-recherche');
+    } else {
+        res.send("Réservation impossible, le trajet est complet ou déjà réservé.");
+        }
+    } catch(err){
+        console.error(err);
+        res.status(500).send("Erreur lors de la réservation du trajet");
+        }
 });
 
 

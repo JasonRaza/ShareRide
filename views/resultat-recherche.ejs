@@ -9,12 +9,17 @@
     <h1><%= message %></h1>
     <% if (trajets.length > 0) { %>
         <% trajets.forEach(trajet => { %>
+            <form action="/reserver" method="POST">
             <div class="trajet">
                 <p>Point de départ: <%= trajet.pointDepart %></p>
                 <p>Point de destination: <%= trajet.pointDestination %></p>
+                <p>Date de départ: <%= trajet.dateDepart %></p>
+                <p>Heure de départ: <%= trajet.heureDepart %></p>
+                <input type="hidden" name="trajetID" value="<%= trajet.id %>">
+                <button type="submit">Réserver</button>
             </div>
+        </form>
         <% }); %>
-    <% } %>
-    <button>Réserver</button>
+    <% } %>    
 </body>
 </html>

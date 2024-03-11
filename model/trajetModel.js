@@ -6,6 +6,10 @@ const trajetSchema = new mongoose.Schema({
     ref: 'Utilisateur',
     required: true,
   },
+  passager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Utilisateur'
+  },
   pointDepart: {
     type: String,
     required: true,
@@ -23,12 +27,26 @@ const trajetSchema = new mongoose.Schema({
     required: true,
   },
   voiture: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'Voiture',
+    marque: String,
+    modele: String,
+    nombrePlaces: Number,
     required: true,
   },
+  reservation: {
+    type: Boolean,
+    default: false
+  }
 });
 
+/*
+trajetSchema.methods.reserver = funciton(){
+  if(this.passagers.length >= this.voiture.nombrePlaces){
+  this.reservation = true;
+  }
+};
+*/
 const Trajet = mongoose.model('Trajet', trajetSchema);
 
 module.exports = Trajet;
