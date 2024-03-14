@@ -8,19 +8,33 @@
 </head>
 <body>
     <h1><%= message %></h1>
-    <% if (trajets.length > 0) { %>
-        <% trajets.forEach(trajet => { %>
-            <form action="/reserver-trajet" method="POST">
+    <!-- ... -->
+<% if (trajets.length > 0) { %>
+    <% trajets.forEach(trajet => { %>
+        <form action="/reserver-trajet" method="POST" onsubmit="ReservationMessage()">
             <div class="trajet">
                 <p>Point de départ: <%= trajet.pointDepart %></p>
                 <p>Point de destination: <%= trajet.pointDestination %></p>
                 <p>Date de départ: <%= trajet.dateDepart %></p>
-                <p>Heure de départ: <%= trajet.heureDepart %></p>
+                <p>Heure de départ: <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %></p>
                 <input type="hidden" name="trajetID" value="<%= trajet.id %>">
                 <button type="submit">Réserver</button>
+                <div id="reservation-message" style="display: none;">Trajet réservé avec succès !</div>
+
             </div>
         </form>
-        <% }); %>
-    <% } %>    
+    <% }); %>
+<% } %>
+<!-- ... -->
+<script>
+    function ReservationMessage() {
+        var messageDiv = document.getElementById('reservation-message');
+        messageDiv.style.display = 'block';
+        setTimeout(function() {
+            messageDiv.style.display = 'none';
+        }, 3000); 
+    }
+</script>
+
 </body>
 </html>

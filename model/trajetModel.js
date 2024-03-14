@@ -27,11 +27,8 @@ const trajetSchema = new mongoose.Schema({
     required: true,
   },
   voiture: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Voiture',
-    marque: String,
-    modele: String,
-    nombrePlaces: Number,
     required: true,
   },
   reservation: {

@@ -4,23 +4,27 @@ const voitureSchema = new mongoose.Schema({
   conducteur: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Utilisateur',
-    required: true,
+    required: true
   },
   marque: {
     type: String,
-    required: true,
+    required: true
   },
   modele: {
     type: String,
-    required: true,
+    required: true
   },
   annee: {
     type: Number,
-    required: true,
+    required: true
+  },
+  plaque: {
+    type: String,
+    require:true
   },
   capacite: {
     type: Number,
-    required: true,
+    required: true
   },
 });
 

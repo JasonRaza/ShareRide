@@ -8,11 +8,11 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw02Fzka8C3SVlPqi_hbUrCPaxvwSEnXA&libraries=places"></script>
     <script>
         function initAutocomplete(){
-            var departInput = document.getElementById('depart');
-            var departAutocomplete = new google.maps.places.Autocomplete(departInput);
+            var departInput = document.getElementById('pointDepart');
+            var departAutocomplete = new google.maps.places.Autocomplete(departInput, {types: ['geocode']});
 
-            var arriveeInput = document.getElementById('arrivee');
-            var arriveeAutocomplete = new google.maps.places.Autocomplete(arriveeInput)
+            var arriveeInput = document.getElementById('pointArrivee');
+            var arriveeAutocomplete = new google.maps.places.Autocomplete(arriveeInput, {types: ['geocode']});
         }
         google.maps.event.addDomListener(window, 'load', initAutocomplete);
     </script>    
@@ -31,49 +31,75 @@
             </form>
 
         </div>
+        <!-- ... -->
         <div class="box">
             <h3>Afficher tous les trajets de Québec en live : </h3>
             <p>Point de départ:               Point de destination:</p>
             <% if (trajets && trajets.length > 0) { %>
-            <% trajets.forEach(trajet => { %>
-                <div class="trajet">
-                    <p><%= trajet.pointDepart %> le <%= trajet.dateDepart %> à <%= trajet.heureDepart %></p>
-                    <p><%= trajet.pointDestination %></p>
-                </div>
-            <% }); %>
+                <% trajets.forEach(trajet => { %>
+                    <div class="trajet">
+                        <p><%= trajet.pointDepart %> le <%= trajet.dateDepart %> à <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %></p>
+                        <p><%= trajet.pointDestination %></p>
+                    </div>
+                <% }); %>
             <% } else { %>
                 <p>Aucun trajet trouvé.</p>
             <% } %>
         </div>
-
         <div class="box">
             <h3>Rechercher trajet</h3>
             <form action="/rechercher-trajet" method="POST">            
                 <input type="text" name="pointDepart" id="pointDepart" placeholder="Point de départ">
-                <input type="text" name="pointDepart" id="pointDestination" placeholder="Point d'arrivée">
+                <input type="text" name="pointArrivee" id="pointArrivee" placeholder="Point d'arrivée">
                 <button type="submit">Rechercher</button>
             </form>
         </div>     
 
         <div class="box">
-            <h3>Créer un trajet</h3>
-            <p>Vous disposez d'un véhicule? Créer un trajet</p>
-            <form action="/creer-trajet" method="POST" id="creerTrajetForm">            
-                <input type="text" id="pointDepart" name="pointDepart"  placeholder="Point de départ">
-                <input type="text" id="pointArrivee" name="pointArrivee" placeholder="Point d'arrivée">
-                <input type="text" id="dateDepart" name="dateDepart" placeholder="Date du départ">
-                <input type="text" id="heureDepart" name="heureDepart" placeholder="Heure départ">
-                <input type="text" id="voiture" name="voiture" placeholder="Voiture">
-                <button type="submit">Créer</button>
+            <h3>Créer une voiture</h3>
+            <p>Vous disposez d'un véhicule? Enregistrer votre véhicule</p>
+            <form action="/creer-voiture" method="POST" id="creerVoitureForm">
+                <input type="text" id="marque" name="marque" placeholder="Marque de la voiture">
+                <input type="text" id="modele" name="modele" placeholder="Modèle de la voiture">
+                <input type="number" id="annee" name="annee" placeholder="Année de la voiture">
+                <input type="number" id="capacite" name="capacite" placeholder="Capacité de la voiture">
+                <button type="submit">Créer la voiture</button>
             </form>
-            <div id="message"></div>
-        </div>
-        
-        
+            <div id="messageVoiture"></div>
+            </div>
 
-        
-        
+        <div class="box">
+            <h3>Mes voitures : </h3>
+            <% if (voitures && voitures.length > 0) { %>
+                <% voitures.forEach((voiture, index) => { %>
+                    <div class="voiture">
+                        <p>Voiture <%= index + 1 %>: <%= voiture.marque %> <%= voiture.modele %> - <%= voiture.annee %></p>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p>Aucune voiture enregistrée.</p>
+            <% } %>
+        </div>   
 
+        <div class="box">
+            <p>Créer votre trajet</p>
+            <form action="/creer-trajet" method="POST" id="creerTrajetForm">
+                <!-- Champs pour les informations du trajet -->
+                <input type="text" id="pointDepart" name="pointDepart" placeholder="Point de départ">
+                <input type="text" id="pointArrivee" name="pointArrivee" placeholder="Point d'arrivée">
+                <input type="date" id="dateDepart" name="dateDepart" placeholder="Date du départ">
+                <input type="time" id="heureDepart" name="heureDepart" placeholder="Heure départ" step="60">
+                <!-- Liste déroulante pour sélectionner la voiture -->
+                <select id="voiture" name="voiture">
+                    <% voitures.forEach(voiture => { %>
+                        <option value="<%= voiture._id %>"><%= voiture.marque %> <%= voiture.modele %> - <%= voiture.annee %></option>
+                    <% }); %>
+                </select>
+                <button type="submit">Créer le trajet</button>
+            </form>
+            <div id="messageTrajet"></div>
+        </div>              
+        
 
         <div class="box">
             <h3>Notifications</h3>
