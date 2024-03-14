@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Résultat de la recherche</title>
+    <link rel="stylesheet" type="text/css" href="/css/style-recherche.css">
 </head>
 <body>
     <h1><%= message %></h1>
     <% if (trajets.length > 0) { %>
         <% trajets.forEach(trajet => { %>
-            <form action="/reserver" method="POST">
+            <form action="/reserver-trajet" method="POST">
             <div class="trajet">
                 <p>Point de départ: <%= trajet.pointDepart %></p>
                 <p>Point de destination: <%= trajet.pointDestination %></p>

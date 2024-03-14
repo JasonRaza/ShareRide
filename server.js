@@ -209,14 +209,14 @@ app.post('/reserver-trajet', async(req, res) => {
 
     try{
         const trajet = await Trajet.findById(trajetId).populate('voiture');
-        if(!trajet.reservation && trajet.passagers.length < trajet.voiture.capacite) {
+        if(!trajet.reservation && trajets.passagers && trajet.passagers.length < trajet.voiture.capacite) {
             trajet.passagers.push(utilisateurID);
             if(trajet.passagers.length >= trajet.voiture.capacite){
                 trajet.reservation = true;
             }
         
         await trajet.save();
-        res.redirect('/resultat-recherche');
+        res.redirect('/confirmation-reservation');
     } else {
         res.send("Réservation impossible, le trajet est complet ou déjà réservé.");
         }
