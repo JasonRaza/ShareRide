@@ -1,9 +1,7 @@
 body{
     font-family: Arial, Helvetica, sans-serif;
     font-size: 16px;
-    font-size: 16px;
-    text-align: center; 
-    background-color: #7b8df0; 
+    background: #d1f5ee;
 }
 
 .formulaire{
@@ -12,48 +10,40 @@ body{
     max-width: 300px;
     margin: auto;
     padding: 40px;
-    border: 1px solid rgb(191, 191, 191);
     border-radius: 5px;
-    box-shadow: 2px 2px 0px 0px rgb(214, 214, 214);
-    background-color: #cdc7ee;
+    background-color: rgba(255, 255, 255, 0.9); 
+    border: 1px solid rgba(227, 255, 242, 0.9); 
+    box-shadow: 0 2px 4px #1abc9c;
     margin-top: 150px;
 }
 .formulaire h3{
-    font-size: 28px;
+    font-size: 34px;
     font-weight: 800;
     text-align: center;
 }
-
+.input-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
 .formulaire label{
-    width: 65%;
+    width: 100%;
     display: block;
     margin: auto;
     margin-bottom: 3px;
 }
 
 .formulaire input{
+    width: 100%;
     display: block;
     margin: auto;
     font-size: 15px;
     margin-bottom: 10px;
-    padding: 3px;
+    padding: 8px;
     padding-left: 5px;
     padding-right: 5px;
     border: 1px solid rgb(207, 207, 207);
     border-radius: 3px;
-}
-
-.formulaire button{
-    background-color: rgb(100, 152, 248);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px;
-    display: block;
-    margin: auto;
-    margin-top: 26px;
-    letter-spacing: 1px;
-    cursor: pointer;
 }
 
 .mssg-erreur{
@@ -84,4 +74,54 @@ body{
     transform: translateX(-50%);
     padding: 14px;
     text-align: center;
+}
+.autre-info{
+    text-align: center;
+}
+
+.formulaire button{
+    background-color: rgb(100, 152, 248);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 26px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.a{
+    background-color: rgb(100, 152, 248);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    margin-top: 26px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+.group-btn {
+    margin-top: 40px;
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    gap: 10px;
+}
+
+.group-btn button, .group-btn a {
+    font-size: 13px;
+    background-color: rgb(100, 152, 248);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-decoration: none; 
+    margin: 0; 
+    display: inline-block; 
+}
+
+.group-btn a:hover {
+    background-color: rgb(125, 194, 255); 
 }

@@ -12,12 +12,14 @@ const Voiture = require('./model/voitureModel');
 const app = express();
 const path = require('path');
 const passport = require('passport');
+const flash = require('connect-flash');
 const LocalStrategy = require('passport-local').Strategy;
 const Utilisateur = require('./model/utilisateurModel');
 const PORT = 5000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({extended:true}));
+app.use(flash());
 
 const generateSecret = () => {
     return crypto.randomBytes(32).toString('hex');
@@ -85,10 +87,13 @@ app.get('/se-connecter', (req, res) => {
 
 //connection avec la logique passport.authenticate
 app.post('/se-connecter', passport.authenticate('local', {
-    successRedirect: '/profil', // rediriger vers le profil en cas de succès
-    failureRedirect: '/se-connecter', // rediriger vers la page de connexion en cas d'échec
-}));
-
+    successRedirect: '/profil',
+    failureRedirect: '/se-connecter',
+    failureFlash: true 
+}), (req, res, next) => {
+    console.log('Requête de connexion reçue !');
+    next();
+});
 
 
 //route de création de compte (creer-compte)
@@ -137,7 +142,9 @@ app.get('/profil', async (req, res) => {
     const { nom, prenom } = req.user;
 
     try {
+        let trajetsUtilisateur = await Trajet.find({ conducteur: req.user._id }).populate('voiture');
         let trajets = await Trajet.find({ conducteur: req.user._id} ).populate('voiture');
+        let trajetsReserves = await Trajet.find({passagers: req.user._id}).populate('voiture');
         const voitures = await Voiture.find({ conducteur: req.user._id });
 
         // Formater les trajets pour l'affichage
@@ -153,12 +160,49 @@ app.get('/profil', async (req, res) => {
             };
         });
 
-        res.render('profil', { nom, prenom, trajets, voitures });
+        
+        res.render('profil', { nom, prenom, trajets, voitures, trajetsUtilisateur });
     } catch (err) {
         console.error(err);
         res.status(500).send('Erreur lors de la récupération des trajets');
     }
 });
+
+// Route pour sauvegarder les modifications des trajets
+app.post('/update-trajet', async (req, res) => {
+    try {
+        const { trajetId, updatedFields } = req.body;
+        console.log('Champs édités pour le trajet avec l\'ID :', trajetId);
+        console.log(updatedFields);
+      
+        const updatedTrajet = await Trajet.findByIdAndUpdate(trajetId, updatedFields, { new: true });
+
+        if (updatedTrajet) {
+            res.status(200).send('Le trajet a été mis à jour avec succès.');
+        } else {
+            res.status(404).send('Le trajet spécifié n\'a pas été trouvé.');
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Une erreur s\'est produite lors de la mise à jour du trajet.');
+    }
+});
+
+app.post('/effacer-trajet', async (req, res) => {
+    try {
+        const trajetId = req.body.trajetId; 
+        console.log('ID du trajet à supprimer :', trajetId);
+
+        await Trajet.findByIdAndDelete(trajetId);
+
+        res.status(200).send('Le trajet a été supprimé avec succès.');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Une erreur s\'est produite lors de la suppression du trajet.');
+    }
+});
+
+
 
 app.post('/creer-voiture', async (req, res) => {
     try {
@@ -207,7 +251,8 @@ app.post('/creer-trajet', async (req, res) => {
         // Enregistrez le nouveau trajet dans la base de données
         await nouveauTrajet.save();
         console.log('Trajet créé : ', nouveauTrajet);
-        res.status(200).json({ message: 'Le trajet a été créé avec succès.' });
+        res.redirect('/profil');
+        //res.status(200).json({ message: 'Le trajet a été créé avec succès.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Erreur lors de la création du trajet.' });
@@ -245,27 +290,52 @@ app.post('/rechercher-trajet', async (req, res) => {
     }
 });
 
-app.post('/reserver-trajet', async(req, res) => {
-    const trajetId = req.body.trajetId;
-    const utilisateurId = req.user._id;
-    try{
-        const trajet = await Trajet.findById(trajetId).populate('voiture');
-        if(!trajet.reservation && trajets.passagers && trajet.passagers.length < trajet.voiture.capacite) {
-            trajet.passagers.push(utilisateurID);
-            if(trajet.passagers.length >= trajet.voiture.capacite){
-                trajet.reservation = true;
-            }
+app.post('/reserver-trajet', async (req, res) => {
+    try {
+        const trajetId = req.body.trajetId;
+        const utilisateurId = req.user._id;
+
+        if (!utilisateurId) {
+            return res.render('resultat-recherche', { message: 'Vous devez être connecté pour réserver un trajet.', trajets: [] });
+        }
+
+        const trajet = await Trajet.findById(trajetId);
+
+        // Vérifiez si le trajet existe
+        if (!trajet) {
+            return res.render('resultat-recherche', { message: 'Trajet non trouvé.', trajets: [] });
+        }
+
+        // Vérifiez si le trajet est déjà réservé
+        if (trajet.reservation) {
+            return res.render('resultat-recherche', { message: 'Ce trajet est déjà réservé.', trajets: [] });
+        }
+
+        // Vérifiez si le trajet est complet
+        if (trajet.passagers.length >= trajet.voiture.capacite) {
+            return res.render('resultat-recherche', { message: 'Ce trajet est complet.', trajets: [] });
+        }
+
+        // Vérifiez si l'utilisateur est déjà dans la liste des passagers
+        if (trajet.passagers.includes(utilisateurId)) {
+            return res.render('resultat-recherche', { message: 'Vous êtes déjà inscrit à ce trajet.', trajets: [] });
+        }
+
+        trajet.passagers.push(utilisateurId);
+
+        // Si le nombre de passagers atteint la capacité maximale de la voiture, marquez le trajet comme réservé
+        if (trajet.passagers.length >= trajet.voiture.capacite) {
+            trajet.reservation = true;
+        }
         
         await trajet.save();
-        res.redirect('/confirmation-reservation');
-    } else {
-        res.send("Réservation impossible, le trajet est complet ou déjà réservé.");
-        }
-    } catch(err){
+        return res.render('resultat-recherche', { message: 'Trajet réservé avec succès !', trajets: [] });
+    } catch (err) {
         console.error(err);
-        res.status(500).send("Erreur lors de la réservation du trajet");
-        }
+        return res.render('resultat-recherche', { message: 'Erreur lors de la réservation du trajet', trajets: [] });
+    }
 });
+
 
 
 app.get('/logout', (req, res) => {

@@ -6,10 +6,10 @@ const trajetSchema = new mongoose.Schema({
     ref: 'Utilisateur',
     required: true,
   },
-  passager: {
+  passagers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Utilisateur'
-  },
+}],
   pointDepart: {
     type: String,
     required: true,
@@ -30,10 +30,6 @@ const trajetSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Voiture',
     required: true,
-  },
-  reservation: {
-    type: Boolean,
-    default: false
   }
 });
 

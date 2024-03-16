@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>profil</title>
     <link rel="stylesheet" href="/css/style-page-profil.css">
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw02Fzka8C3SVlPqi_hbUrCPaxvwSEnXA&libraries=places"></script>
-    <script>
-        function initAutocomplete(){
-            var departInput = document.getElementById('pointDepart');
-            var departAutocomplete = new google.maps.places.Autocomplete(departInput, {types: ['geocode']});
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBw02Fzka8C3SVlPqi_hbUrCPaxvwSEnXA&libraries=places"></script>  
 
-            var arriveeInput = document.getElementById('pointArrivee');
-            var arriveeAutocomplete = new google.maps.places.Autocomplete(arriveeInput, {types: ['geocode']});
-        }
-        google.maps.event.addDomListener(window, 'load', initAutocomplete);
-    </script>    
+    <!-- Google map event -->
+    <script src="/script/google-map-event.js" type="text/javascript"></script> 
+
+
+
 </head>
 <body>
     <div class="container">
@@ -29,23 +25,160 @@
             <form action="/logout" method="GET">
                 <button type="submit">Logout</button>                
             </form>
+            <button onclick="toggleTousTrajets()">Afficher tous les trajets</button>
+            <button onclick="toggleTrajetsUtilisateur()">Afficher vos trajets</button>
+        </div>
 
-        </div>
-        <!-- ... -->
+        <!-- Afficher les trajets -->
         <div class="box">
-            <h3>Afficher tous les trajets de Québec en live : </h3>
-            <p>Point de départ:               Point de destination:</p>
-            <% if (trajets && trajets.length > 0) { %>
-                <% trajets.forEach(trajet => { %>
-                    <div class="trajet">
-                        <p><%= trajet.pointDepart %> le <%= trajet.dateDepart %> à <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %></p>
-                        <p><%= trajet.pointDestination %></p>
-                    </div>
-                <% }); %>
-            <% } else { %>
-                <p>Aucun trajet trouvé.</p>
-            <% } %>
+            <!-- Afficher tous les trajets -->
+            <div id="tousTrajets">
+                <h3>Afficher tous les trajets de Québec en live : </h3>
+                <p>Point de départ:               Point de destination:</p>
+                <% if (trajets && trajets.length > 0) { %>
+                    <% trajets.forEach(trajet => { %>
+                        <div class="trajet">
+                            <p><%= trajet.pointDepart %> le <%= trajet.dateDepart %> à <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %></p>
+                            <p><%= trajet.pointDestination %></p>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p>Aucun trajet trouvé.</p>
+                <% } %>
+            </div>
+
+            <!-- Afficher trajets utilisateurs -->
+            <div id="trajetsUtilisateur" style="display:none;">
+                <h3>Vos trajets: </h3>
+                <p>Point de départ:               Point de destination:</p>
+                <% if (trajetsUtilisateur && trajetsUtilisateur.length > 0) { %>
+                    <% trajetsUtilisateur.forEach(trajet => { %>
+                        <div class="trajet">
+                            <p class="editable" contenteditable="false" data-trajetId="<%= trajet._id %>" data-field="pointDepart">
+                                <%= trajet.pointDepart %> le <%= trajet.dateDepart %> à <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %>
+                            </p>
+                            <p class="editable" contenteditable="false" data-trajetId="<%= trajet._id %>" data-field="pointDestination">
+                                <%= trajet.pointDestination %> 
+                            </p>
+                            <button class="editBtn">Edit</button>
+
+                            <!-- Boutons "Save" -->
+                            <form action="/update-trajet" method="POST" style="display: none;">
+                                <input type="hidden" name="trajetId" value="<%= trajet._id %>">
+                                <input type="hidden" name="pointDepart" value="">
+                                <input type="hidden" name="pointDestination" value="">
+                                <div class="editButtons">
+                                    <button type="submit" class="saveBtn">Save</button>
+                                    <button class="cancelBtn">Cancel</button>
+                                </div>                
+                            </form>
+
+                            <!-- Boutons "Delete" -->
+                            <form class="deleteForm" action="/effacer-trajet" method="POST">
+                                <input type="hidden" name="trajetId" value="<%= trajet._id %>">
+                                <button type="submit" class="deleteBtn">Delete</button>
+                            </form>
+                        </div>
+                    <% }); %>
+                <% } else { %>
+                    <p>Aucun trajet trouvé.</p>
+                <% } %>
+            </div>
+
+<script>
+
+const editButtons = document.querySelectorAll('.editBtn');
+
+editButtons.forEach(button => {
+    button.addEventListener('click', (event) => {
+        event.preventDefault(); 
+
+        const editableParagraphs = button.parentNode.parentNode.querySelectorAll('.editable');
+
+        editableParagraphs.forEach(paragraph => {
+            paragraph.contentEditable = true;
+        });
+
+        editableParagraphs.forEach(paragraph => {
+            paragraph.dataset.originalValue = paragraph.textContent;
+        });
+
+        button.style.display = 'none';
+        button.nextElementSibling.style.display = 'inline-block'; 
+        button.nextElementSibling.nextElementSibling.style.display = 'inline-block'; 
+    });
+});
+const saveBtn = trajetElement.querySelector('.saveBtn');
+saveBtn.addEventListener('click', async () => {
+    const trajetId = trajetElement.dataset.trajetId;
+    const pointDepart = trajetElement.querySelector('.editable[data-field="pointDepart"]').innerText.trim();
+    const pointDestination = trajetElement.querySelector('.editable[data-field="pointDestination"]').innerText.trim();
+
+    const updatedFields = {
+        pointDepart: pointDepart,
+        pointDestination: pointDestination
+    };
+
+    try {
+        const response = await fetch('/update-trajet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                trajetId,
+                updatedFields
+            })
+        });
+
+        if (response.ok) {
+        } else {
+            console.error('Échec de la mise à jour du trajet.');
+        }
+    } catch (error) {
+        console.error('Une erreur s\'est produite lors de la mise à jour du trajet :', error);
+    }
+});
+
+const cancelButtons = document.querySelectorAll('.cancelBtn');
+cancelButtons.forEach(cancelButton => {
+    cancelButton.addEventListener('click', () => {
+        const trajetElement = cancelButton.parentNode.parentNode;
+        const editableParagraphs = trajetElement.querySelectorAll('.editable');
+
+        editableParagraphs.forEach(paragraph => {
+            paragraph.contentEditable = false;
+            paragraph.textContent = paragraph.dataset.originalValue;
+        });
+
+        cancelButton.style.display = 'none';
+        const saveBtn = trajetElement.querySelector('.saveBtn');
+        saveBtn.style.display = 'none'; 
+        const editBtn = trajetElement.querySelector('.editBtn');
+        editBtn.style.display = 'inline-block'; 
+    });
+});
+
+
+
+</script>
+
+
+<script>
+deleteForms.forEach(form => {
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault(); 
+
+        const trajetIdInput = form.querySelector('input[name="trajetId"]');
+        console.log('Champ caché trajetIdInput :', trajetIdInput);
+        const trajetId = trajetIdInput ? trajetIdInput.value : null;
+        console.log('ID du trajet à supprimer :', trajetId);
+
+    });
+});
+</script>
         </div>
+        
         <div class="box">
             <h3>Rechercher trajet</h3>
             <form action="/rechercher-trajet" method="POST">            
@@ -85,8 +218,8 @@
             <p>Créer votre trajet</p>
             <form action="/creer-trajet" method="POST" id="creerTrajetForm">
                 <!-- Champs pour les informations du trajet -->
-                <input type="text" id="pointDepart" name="pointDepart" placeholder="Point de départ">
-                <input type="text" id="pointArrivee" name="pointArrivee" placeholder="Point d'arrivée">
+                <input type="text" id="creerPointDepart" name="pointDepart" placeholder="Point de départ">
+                <input type="text" id="creerPointArrivee" name="pointArrivee" placeholder="Point d'arrivée">
                 <input type="date" id="dateDepart" name="dateDepart" placeholder="Date du départ">
                 <input type="time" id="heureDepart" name="heureDepart" placeholder="Heure départ" step="60">
                 <!-- Liste déroulante pour sélectionner la voiture -->
@@ -99,12 +232,8 @@
             </form>
             <div id="messageTrajet"></div>
         </div>              
-        
-
-        <div class="box">
-            <h3>Notifications</h3>
-            <p>Aucune notification</p>
-        </div>
     </div>
+    <script src="/script/modifier-trajet.js" type="text/javascript"></script> 
+
 </body>
 </html>

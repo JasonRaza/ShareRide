@@ -7,7 +7,12 @@
     <link rel="stylesheet" type="text/css" href="/css/style-recherche.css">
 </head>
 <body>
-    <h1><%= message %></h1>
+
+
+    <% if (message) { %>
+        <!-- Afficher le message d'erreur ici -->
+        <div class="error-message"><%= message %></div>
+    <% } %>
     <!-- ... -->
 <% if (trajets.length > 0) { %>
     <% trajets.forEach(trajet => { %>
@@ -17,7 +22,7 @@
                 <p>Point de destination: <%= trajet.pointDestination %></p>
                 <p>Date de départ: <%= trajet.dateDepart %></p>
                 <p>Heure de départ: <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %></p>
-                <input type="hidden" name="trajetID" value="<%= trajet.id %>">
+                <input type="hidden" name="trajetId" value="<%= trajet._id %>">
                 <button type="submit">Réserver</button>
                 <div id="reservation-message" style="display: none;">Trajet réservé avec succès !</div>
 
@@ -27,12 +32,37 @@
 <% } %>
 <!-- ... -->
 <script>
-    function ReservationMessage() {
-        var messageDiv = document.getElementById('reservation-message');
-        messageDiv.style.display = 'block';
-        setTimeout(function() {
-            messageDiv.style.display = 'none';
-        }, 3000); 
+    function reserverTrajet(event, trajetId) {
+        event.preventDefault();
+        fetch('/reserver-trajet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ trajetId: trajetId })
+        })
+        .then(response => {
+            if (response.ok) {
+                var messageDiv = document.getElementById('reservation-message-' + trajetId);
+                messageDiv.textContent = 'Trajet réservé avec succès !';
+                messageDiv.style.display = 'block';
+                setTimeout(function() {
+                    messageDiv.style.display = 'none';
+                }, 3000);
+            } else if (response.status === 400) {
+                var messageDiv = document.getElementById('reservation-message-' + trajetId);
+                messageDiv.textContent = 'Ce trajet est déjà réservé ou complet.';
+                messageDiv.style.display = 'block';
+            } else {
+                throw new Error('Erreur lors de la réservation du trajet');
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            var messageDiv = document.getElementById('reservation-message-' + trajetId);
+            messageDiv.textContent = 'Erreur lors de la réservation du trajet';
+            messageDiv.style.display = 'block';
+        });
     }
 </script>
 
