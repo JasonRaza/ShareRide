@@ -9,10 +9,8 @@
 
     <!-- Google map event -->
     <script src="/script/google-map-event.js" type="text/javascript"></script> 
-
-
-
 </head>
+
 <body>
     <div class="container">
         <div class="box">
@@ -34,7 +32,11 @@
             <!-- Afficher tous les trajets -->
             <div id="tousTrajets">
                 <h3>Afficher tous les trajets de Québec en live : </h3>
-                <p>Point de départ:               Point de destination:</p>
+                <div class="centre">
+                    <p>Point de départ:</p>              
+                    <p>Point de destination:</p>            
+                </div>
+
                 <% if (trajets && trajets.length > 0) { %>
                     <% trajets.forEach(trajet => { %>
                         <div class="trajet">
@@ -50,30 +52,28 @@
             <!-- Afficher trajets utilisateurs -->
             <div id="trajetsUtilisateur" style="display:none;">
                 <h3>Vos trajets: </h3>
-                <p>Point de départ:               Point de destination:</p>
+                <div class="centre">
+                    <p>Point de départ:</p>              
+                    <p>Point de destination:</p>            
+                </div>
                 <% if (trajetsUtilisateur && trajetsUtilisateur.length > 0) { %>
                     <% trajetsUtilisateur.forEach(trajet => { %>
                         <div class="trajet">
-                            <p class="editable" contenteditable="false" data-trajetId="<%= trajet._id %>" data-field="pointDepart">
-                                <%= trajet.pointDepart %> le <%= trajet.dateDepart %> à <%= trajet.heureDepart instanceof Date ? trajet.heureDepart.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : trajet.heureDepart %>
-                            </p>
-                            <p class="editable" contenteditable="false" data-trajetId="<%= trajet._id %>" data-field="pointDestination">
-                                <%= trajet.pointDestination %> 
-                            </p>
-                            <button class="editBtn">Edit</button>
-
-                            <!-- Boutons "Save" -->
-                            <form action="/update-trajet" method="POST" style="display: none;">
+                            <!-- Bouton "Save" -->
+                            <form class="updateForm" method="POST" action="/modifier-trajet">
                                 <input type="hidden" name="trajetId" value="<%= trajet._id %>">
-                                <input type="hidden" name="pointDepart" value="">
-                                <input type="hidden" name="pointDestination" value="">
-                                <div class="editButtons">
+                                <input type="text" name="pointDepart" value="<%= trajet.pointDepart %>">
+                                <input type="text" name="pointDestination" value="<%= trajet.pointDestination %>">
+                                <div class="editButtons" style="display: none;">
                                     <button type="submit" class="saveBtn">Save</button>
-                                    <button class="cancelBtn">Cancel</button>
+                                    <button type="button" class="cancelBtn">Cancel</button>
                                 </div>                
                             </form>
 
-                            <!-- Boutons "Delete" -->
+                            <!-- Bouton "Edit" -->
+                            <button class="editBtn">Edit</button>
+
+                            <!-- Bouton "Delete" -->
                             <form class="deleteForm" action="/effacer-trajet" method="POST">
                                 <input type="hidden" name="trajetId" value="<%= trajet._id %>">
                                 <button type="submit" class="deleteBtn">Delete</button>
@@ -85,98 +85,63 @@
                 <% } %>
             </div>
 
-<script>
+            <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                attachEventListenersToElements();
+            });
 
-const editButtons = document.querySelectorAll('.editBtn');
+            function attachEventListenersToElements() {
+                const editButtons = document.querySelectorAll('.editBtn');
 
-editButtons.forEach(button => {
-    button.addEventListener('click', (event) => {
-        event.preventDefault(); 
+                editButtons.forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        event.preventDefault(); 
 
-        const editableParagraphs = button.parentNode.parentNode.querySelectorAll('.editable');
+                        const trajetElement = button.closest('.trajet');
+                        const editButtons = trajetElement.querySelector('.editButtons');
+                        const saveBtn = editButtons.querySelector('.saveBtn');
+                        const cancelBtn = editButtons.querySelector('.cancelBtn');
 
-        editableParagraphs.forEach(paragraph => {
-            paragraph.contentEditable = true;
-        });
+                        const inputFields = trajetElement.querySelectorAll('input[type="text"]');
+                        inputFields.forEach(field => {
+                            field.removeAttribute('disabled');
+                        });
 
-        editableParagraphs.forEach(paragraph => {
-            paragraph.dataset.originalValue = paragraph.textContent;
-        });
+                        editButtons.style.display = 'block';
+                    });
+                });
 
-        button.style.display = 'none';
-        button.nextElementSibling.style.display = 'inline-block'; 
-        button.nextElementSibling.nextElementSibling.style.display = 'inline-block'; 
-    });
-});
-const saveBtn = trajetElement.querySelector('.saveBtn');
-saveBtn.addEventListener('click', async () => {
-    const trajetId = trajetElement.dataset.trajetId;
-    const pointDepart = trajetElement.querySelector('.editable[data-field="pointDepart"]').innerText.trim();
-    const pointDestination = trajetElement.querySelector('.editable[data-field="pointDestination"]').innerText.trim();
+                const cancelButtons = document.querySelectorAll('.cancelBtn');
+                cancelButtons.forEach(cancelButton => {
+                    cancelButton.addEventListener('click', (event) => {
+                        event.preventDefault(); 
 
-    const updatedFields = {
-        pointDepart: pointDepart,
-        pointDestination: pointDestination
-    };
+                        const trajetElement = cancelButton.closest('.trajet');
+                        const editButtons = trajetElement.querySelector('.editButtons');
+                        const inputFields = trajetElement.querySelectorAll('input[type="text"]');
+                        
+                        inputFields.forEach(field => {
+                            field.setAttribute('disabled', 'true');
+                        });
 
-    try {
-        const response = await fetch('/update-trajet', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                trajetId,
-                updatedFields
-            })
-        });
+                        editButtons.style.display = 'none';
+                    });
+                });
+            }
 
-        if (response.ok) {
-        } else {
-            console.error('Échec de la mise à jour du trajet.');
-        }
-    } catch (error) {
-        console.error('Une erreur s\'est produite lors de la mise à jour du trajet :', error);
-    }
-});
+            //DELETE
+            deleteForms.forEach(form => {
+                form.addEventListener('submit', async (event) => {
+                    event.preventDefault(); 
 
-const cancelButtons = document.querySelectorAll('.cancelBtn');
-cancelButtons.forEach(cancelButton => {
-    cancelButton.addEventListener('click', () => {
-        const trajetElement = cancelButton.parentNode.parentNode;
-        const editableParagraphs = trajetElement.querySelectorAll('.editable');
+                    const trajetIdInput = form.querySelector('input[name="trajetId"]');
+                    console.log('Champ caché trajetIdInput :', trajetIdInput);
+                    const trajetId = trajetIdInput ? trajetIdInput.value : null;
+                    console.log('ID du trajet à supprimer :', trajetId);
 
-        editableParagraphs.forEach(paragraph => {
-            paragraph.contentEditable = false;
-            paragraph.textContent = paragraph.dataset.originalValue;
-        });
-
-        cancelButton.style.display = 'none';
-        const saveBtn = trajetElement.querySelector('.saveBtn');
-        saveBtn.style.display = 'none'; 
-        const editBtn = trajetElement.querySelector('.editBtn');
-        editBtn.style.display = 'inline-block'; 
-    });
-});
-
-
-
-</script>
-
-
-<script>
-deleteForms.forEach(form => {
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault(); 
-
-        const trajetIdInput = form.querySelector('input[name="trajetId"]');
-        console.log('Champ caché trajetIdInput :', trajetIdInput);
-        const trajetId = trajetIdInput ? trajetIdInput.value : null;
-        console.log('ID du trajet à supprimer :', trajetId);
-
-    });
-});
-</script>
+                });
+            });
+            </script>
         </div>
         
         <div class="box">
@@ -199,7 +164,7 @@ deleteForms.forEach(form => {
                 <button type="submit">Créer la voiture</button>
             </form>
             <div id="messageVoiture"></div>
-            </div>
+        </div>
 
         <div class="box">
             <h3>Mes voitures : </h3>
@@ -215,7 +180,7 @@ deleteForms.forEach(form => {
         </div>   
 
         <div class="box">
-            <p>Créer votre trajet</p>
+            <h3>Créer votre trajet</h3>
             <form action="/creer-trajet" method="POST" id="creerTrajetForm">
                 <!-- Champs pour les informations du trajet -->
                 <input type="text" id="creerPointDepart" name="pointDepart" placeholder="Point de départ">
@@ -233,6 +198,8 @@ deleteForms.forEach(form => {
             <div id="messageTrajet"></div>
         </div>              
     </div>
+
+    <!-- Script qui toggle de box Afficher les trajets -->
     <script src="/script/modifier-trajet.js" type="text/javascript"></script> 
 
 </body>

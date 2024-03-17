@@ -2,72 +2,88 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const session = require('express-session');
-const connectDB = require('./config/database');
+
 const dayjs = require('dayjs');
-const  format  = require('date-fns');
-const crypto = require('crypto');
-const Trajet = require('./model/trajetModel');
-const Voiture = require('./model/voitureModel');
 const app = express();
 const path = require('path');
-const passport = require('passport');
 const flash = require('connect-flash');
-const LocalStrategy = require('passport-local').Strategy;
+
+const connectDB = require('./config/database');
+const Trajet = require('./model/trajetModel');
+const Voiture = require('./model/voitureModel');
 const Utilisateur = require('./model/utilisateurModel');
+const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 const PORT = 5000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(flash());
 
-const generateSecret = () => {
-    return crypto.randomBytes(32).toString('hex');
-};
-app.use(session({
-    secret: generateSecret(),
-    resave: false,
-    saveUninitialized: false
-}));
 
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.use(new LocalStrategy ({usernameField: 'email'}, async(email, password, done) => {
-    try{
-        const user = await Utilisateur.findOne({email});
-        if(!user){
-            return done(null, false, {message: 'Utilisateur non trouvé'});
+// Configuration de Passport
+passport.use(new LocalStrategy(
+    { usernameField: 'email' },
+    async function(email, password, done) {
+      try {
+        const user = await Utilisateur.findOne({ email });
+        if (!user) {
+          return done(null, false, { message: 'Incorrect email.' });
         }
-        const match = await bcrypt.compare(password, user.password);
-        if(!match){
-            return done(null, false, {message: 'Mot de passe incorrect'});
+        const isValidPassword = await user.comparePassword(password);
+        if (!isValidPassword) {
+          return done(null, false, { message: 'Incorrect password.' });
         }
         return done(null, user);
-    }catch(e){
-        return done(e);
+      } catch (err) {
+        return done(err);
+      }
     }
-}));
-
-passport.serializeUser((user, done) => {
+  ));
+  
+passport.serializeUser(function(user, done) {
     done(null, user.id);
 });
-
-passport.deserializeUser(async (id, done) => {
-    try {
-        const user = await Utilisateur.findById(id);
-        done(null, user);
-    } catch (err) {
-        done(err, null);
-    }
+  
+passport.deserializeUser(function(id, done) {
+    Utilisateur.findById(id)
+        .then(user => {
+            done(null, user);
+        })
+        .catch(err => {
+            done(err);
+        });
 });
 
+
+
+// Express session
+app.use(session({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: true
+  }));
+  
+// Initialisation de Passport et utilisation des sessions
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'))
 
 //Connection à la bd
 connectDB();
+
+// Connexion avec la logique passport.authenticate
+app.post('/se-connecter', passport.authenticate('local', {
+    successRedirect: '/profil',
+    failureRedirect: '/se-connecter',
+    failureFlash: true
+}));
+
+
+
 
 //Page d'accueil (index)
 app.get('/', (req,res) => {
@@ -85,15 +101,6 @@ app.get('/se-connecter', (req, res) => {
     res.render('connecter');
 })
 
-//connection avec la logique passport.authenticate
-app.post('/se-connecter', passport.authenticate('local', {
-    successRedirect: '/profil',
-    failureRedirect: '/se-connecter',
-    failureFlash: true 
-}), (req, res, next) => {
-    console.log('Requête de connexion reçue !');
-    next();
-});
 
 
 //route de création de compte (creer-compte)
@@ -107,45 +114,59 @@ app.get('/creer-compte', (req,res) => {
     }
 });
 
+
 //inscription
-app.post('/inscription', async (req,res) =>{
-    try{
-        const { prenom, nom, email, password, numeroTelephone} = req.body;
+app.post('/inscription', async (req, res) =>{
+    try {
+        const { prenom, nom, email, password, numeroTelephone } = req.body;
         const username = prenom.toLowerCase() + '.' + nom.toLowerCase();
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('Mot de passe hashé:', hashedPassword);
 
         const nouvelUtilisateur = new Utilisateur({
-            username, 
-            password: hashedPassword, 
+            username,
+            password: hashedPassword,
             email,
             nom,
             prenom,
-            numeroTel : numeroTelephone,
-            email
-
+            numeroTel: numeroTelephone
         });
 
         await nouvelUtilisateur.save();
+        console.log('Nouvel utilisateur enregistré:', nouvelUtilisateur);
         res.render('connecter');
-    }catch(err){
+    } catch (err) {
         console.error(err);
         res.redirect('/creer-compte');
     }
 });
 
 
+
 // Page de profil
 app.get('/profil', async (req, res) => {
     if (!req.isAuthenticated()) {
         return res.redirect('/se-connecter');
-    }
+      }
     const { nom, prenom } = req.user;
 
     try {
         let trajetsUtilisateur = await Trajet.find({ conducteur: req.user._id }).populate('voiture');
-        let trajets = await Trajet.find({ conducteur: req.user._id} ).populate('voiture');
+        let trajets = await Trajet.find();
         let trajetsReserves = await Trajet.find({passagers: req.user._id}).populate('voiture');
         const voitures = await Voiture.find({ conducteur: req.user._id });
+
+        trajetsUtilisateur = trajetsUtilisateur.map(trajet => {
+            const dateDepart = trajet.dateDepart ? trajet.dateDepart.toLocaleDateString('fr-FR') : '';
+            const heureDepart = trajet.heureDepart;
+            return {
+                ...trajet.toObject(), // Convertir le document Mongoose en objet JS
+                dateDepart,
+                heureDepart,
+                conducteurNom: trajet.conducteur ? trajet.conducteur.nom : '',
+                conducteurPrenom: trajet.conducteur ? trajet.conducteur.prenom : ''
+            };
+        });
 
         // Formater les trajets pour l'affichage
         trajets = trajets.map(trajet => {
@@ -168,14 +189,18 @@ app.get('/profil', async (req, res) => {
     }
 });
 
+
+
+
 // Route pour sauvegarder les modifications des trajets
-app.post('/update-trajet', async (req, res) => {
+app.post('/modifier-trajet', async (req, res) => {
     try {
-        const { trajetId, updatedFields } = req.body;
+        const { trajetId, pointDepart, pointDestination } = req.body;
         console.log('Champs édités pour le trajet avec l\'ID :', trajetId);
-        console.log(updatedFields);
+        console.log('Nouveau point de départ :', pointDepart);
+        console.log('Nouveau point de destination :', pointDestination);
       
-        const updatedTrajet = await Trajet.findByIdAndUpdate(trajetId, updatedFields, { new: true });
+        const updatedTrajet = await Trajet.findByIdAndUpdate(trajetId, { pointDepart, pointDestination }, { new: true });
 
         if (updatedTrajet) {
             res.status(200).send('Le trajet a été mis à jour avec succès.');
@@ -261,34 +286,41 @@ app.post('/creer-trajet', async (req, res) => {
 
 
 app.post('/rechercher-trajet', async (req, res) => {
-    try{
-        const{ pointDepart, pointDestination } = req.body;
-        let critereRecherche={};
-        
-        if (pointDepart && pointDestination){
-            critereRecherche = {pointDepart: pointDepart, pointDestination: pointDestination};
-        } else if(pointDepart){
-            critereRecherche = { pointDepart: pointDepart};
-        }else if(pointDestination){
-            critereRecherche = { pointDestination: pointDestination};
+    try {
+        const { pointDepart, pointArrivee } = req.body;
+        let critereRecherche = {};
+
+        const regexPointDepart = new RegExp(pointDepart, 'i');
+        const regexPointArrivee = new RegExp(pointArrivee, 'i');
+
+        if (pointDepart && pointArrivee) {
+            critereRecherche = {
+                pointDepart: regexPointDepart,
+                pointDestination: regexPointArrivee
+            };
+        } else if (pointDepart) {
+            critereRecherche = { pointDepart: regexPointDepart };
+        } else if (pointArrivee) {
+            critereRecherche = { pointDestination: regexPointArrivee };
         }
-            
+
         const trajetsTrouves = await Trajet.find(critereRecherche);
 
-        if(trajetsTrouves.length > 0){
-            res.render('resultat-recherche', { trajets: trajetsTrouves, message: 'Trajet trouvé'});
+        if (trajetsTrouves.length > 0) {
+            res.render('resultat-recherche', { trajets: trajetsTrouves, message: 'Trajet trouvé' });
             console.log('Point de départ:', pointDepart);
-            console.log('Point de destination:', pointDestination);
+            console.log('Point d\'arrivée:', pointArrivee);
             console.log('Critères de recherche:', critereRecherche);
-            
-        } else{
-            res.render('resultat-recherche', { trajets : [], message: 'Trajet non trouvé'});
+        } else {
+            res.render('resultat-recherche', { trajets: [], message: 'Trajet non trouvé' });
         }
-    }catch(err){
+    } catch (err) {
         console.error(err);
         res.status(500).send('Erreur lors de la recherche de trajets');
     }
 });
+
+
 
 app.post('/reserver-trajet', async (req, res) => {
     try {

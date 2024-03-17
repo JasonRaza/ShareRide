@@ -48,7 +48,19 @@ body{
     border-radius:5px;
 
 }
+#tousTrajets, #trajetsUtilisateur {
+    max-height: 300px; 
+    overflow-y: auto; 
+}
+.centre {
+display: flex;
+justify-content: center; 
+gap: 20px; 
+}
 
+.centre p {
+margin: 0; 
+}
 @media screen and (max-width: 600px) {     
 .container {         
     flex-direction: column;     
