@@ -1,0 +1,12 @@
+/config
+/controller
+/images
+/LICENSE
+/middleware
+/model
+/node_modules
+/package-lock.json
+/package.json
+/public
+/server.js
+/views
